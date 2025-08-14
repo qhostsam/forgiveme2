@@ -63,6 +63,7 @@ button {
     background-color: #00bfff;
     color: white;
     position: relative;
+    transition: all 0.3s ease;
 }
 
 #animationContainer {
@@ -89,6 +90,38 @@ button {
     0% { transform: translate(-50%, -50%); opacity: 1; }
     100% { transform: translate(-50%, -200vh); opacity: 0; }
 }
+
+.final-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.95);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    z-index: 20;
+    display: none;
+    animation: fadeIn 1s ease-out;
+}
+
+.final-message h2 {
+    color: #ff3c78;
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.final-message p {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -40%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
 </style>
 </head>
 <body>
@@ -103,33 +136,104 @@ button {
 
 <div id="animationContainer" class="hidden"></div>
 
+<div class="final-message" id="finalMessage">
+    <h2> Teşekkür Ederim! </h2>
+    <p>Ara ve "Seni Affettim" de!</p>
+    
+</div>
+
 <script>
 const yesBtn = document.getElementById('yesBtn');
 const noBtn = document.getElementById('noBtn');
 const container = document.querySelector('.container');
 const animationContainer = document.getElementById('animationContainer');
+const finalMessage = document.getElementById('finalMessage');
 
 // Evet butonu tıklanınca
 yesBtn.addEventListener('click', () => {
     container.style.display = 'none';
     animationContainer.classList.remove('hidden');
     createLions(30); // 30 aslan çıkacak
+    
+    // Aslan animasyonundan sonra final mesajını göster
     setTimeout(() => {
-        alert('Çok sevindim! 🦁');
+        finalMessage.style.display = 'block';
     }, 3000);
 });
 
 // Hayır butonu fare üzerine gelince
 noBtn.addEventListener('mouseover', () => {
-    const maxX = window.innerWidth - noBtn.offsetWidth;
-    const maxY = window.innerHeight - noBtn.offsetHeight;
-    const randomX = Math.random() * maxX;
-    const randomY = Math.random() * maxY;
-
-    noBtn.style.position = 'absolute';
-    noBtn.style.left = `${randomX}px`;
-    noBtn.style.top = `${randomY}px`;
-    noBtn.style.transform = `rotate(${Math.random()*30-15}deg)`; // Sallama efekti
+    // Buton boyutlarını ve konumunu al
+    const btnWidth = noBtn.offsetWidth;
+    const btnHeight = noBtn.offsetHeight;
+    const btnRect = noBtn.getBoundingClientRect();
+    
+    // Ekran boyutlarını al
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Güvenli alanı hesapla (butonun ekran kenarlarına yapışmaması için)
+    const safeMargin = 20;
+    const minX = safeMargin;
+    const minY = safeMargin;
+    const maxX = screenWidth - btnWidth - safeMargin;
+    const maxY = screenHeight - btnHeight - safeMargin;
+    
+    // Mevcut konum
+    const currentX = btnRect.left;
+    const currentY = btnRect.top;
+    
+    // Yeni konum için alternatifler oluştur
+    const possiblePositions = [
+        // Sol üst
+        { x: minX, y: minY },
+        // Sağ üst
+        { x: maxX, y: minY },
+        // Sol alt
+        { x: minX, y: maxY },
+        // Sağ alt
+        { x: maxX, y: maxY },
+        // Orta sol
+        { x: minX, y: (screenHeight - btnHeight) / 2 },
+        // Orta sağ
+        { x: maxX, y: (screenHeight - btnHeight) / 2 },
+        // Üst orta
+        { x: (screenWidth - btnWidth) / 2, y: minY },
+        // Alt orta
+        { x: (screenWidth - btnWidth) / 2, y: maxY }
+    ];
+    
+    // Mevcut konuma en uzak pozisyonu bul
+    let farthestPosition = possiblePositions[0];
+    let maxDistance = 0;
+    
+    possiblePositions.forEach(pos => {
+        const distance = Math.sqrt(
+            Math.pow(pos.x - currentX, 2) + 
+            Math.pow(pos.y - currentY, 2)
+        );
+        
+        if (distance > maxDistance) {
+            maxDistance = distance;
+            farthestPosition = pos;
+        }
+    });
+    
+    // Rastgele bir miktar ekle (tam köşelere gitmemesi için)
+    const randomOffset = 50;
+    const newX = Math.max(minX, Math.min(maxX, 
+        farthestPosition.x + (Math.random() * randomOffset * 2 - randomOffset)));
+    const newY = Math.max(minY, Math.min(maxY, 
+        farthestPosition.y + (Math.random() * randomOffset * 2 - randomOffset)));
+    
+    // Hareketi uygula
+    noBtn.style.position = 'fixed';
+    noBtn.style.left = `${newX}px`;
+    noBtn.style.top = `${newY}px`;
+    noBtn.style.transform = `rotate(${Math.random() * 30 - 15}deg)`;
+    
+    // Butonun tıklanabilir kalmasını sağla
+    noBtn.style.pointerEvents = 'auto';
 });
 
 // Aslan oluşturma fonksiyonu
